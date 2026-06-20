@@ -182,5 +182,18 @@ function loop() {
   requestAnimationFrame(loop);
 }
 
-// Wiring is completed in later tasks; expose for them.
+// --- HUD wiring ---
+el("tgPose").addEventListener("change", (e) => { state.flags.pose = e.target.checked; });
+el("tgHand").addEventListener("change", (e) => { state.flags.hand = e.target.checked; });
+el("tgFace").addEventListener("change", (e) => { state.flags.face = e.target.checked; });
+
+function applyMirror() { stage.classList.toggle("is-mirrored", state.mirror); }
+el("tgMirror").addEventListener("change", (e) => { state.mirror = e.target.checked; applyMirror(); });
+applyMirror();
+
+startBtn.addEventListener("click", async () => {
+  if (state.running) { stopCamera(); ctx.clearRect(0, 0, canvas.width, canvas.height); return; }
+  try { await startCamera(); await startLoop(); } catch { /* error already shown */ }
+});
+
 export { state, video, stage, startBtn, setStatus, showError, clearError, startCamera, stopCamera, el, loadModels, startLoop };
