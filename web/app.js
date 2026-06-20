@@ -1,4 +1,8 @@
 // HOLISTIC.TRACK — main module
+import {
+  FilesetResolver, PoseLandmarker, HandLandmarker, FaceLandmarker,
+} from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs";
+
 const el = (id) => document.getElementById(id);
 const stage = el("stage");
 const video = el("feed");
@@ -12,6 +16,39 @@ const state = {
   mirror: true,
   stream: null,
 };
+
+const MODEL_URLS = {
+  pose: "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task",
+  hand: "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
+  face: "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/latest/face_landmarker.task",
+};
+
+let _models = null;
+async function loadModels() {
+  if (_models) return _models;
+  const modelStatus = el("modelStatus");
+  modelStatus.textContent = "loading…";
+  const vision = await FilesetResolver.forVisionTasks(
+    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+  );
+  const [pose, hand, face] = await Promise.all([
+    PoseLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MODEL_URLS.pose, delegate: "GPU" },
+      runningMode: "VIDEO", numPoses: 1,
+    }),
+    HandLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MODEL_URLS.hand, delegate: "GPU" },
+      runningMode: "VIDEO", numHands: 2,
+    }),
+    FaceLandmarker.createFromOptions(vision, {
+      baseOptions: { modelAssetPath: MODEL_URLS.face, delegate: "GPU" },
+      runningMode: "VIDEO", numFaces: 1,
+    }),
+  ]);
+  _models = { pose, hand, face };
+  modelStatus.textContent = "ready";
+  return _models;
+}
 
 function setStatus(name) {
   statusEl.dataset.state = name;
@@ -56,4 +93,4 @@ function stopCamera() {
 }
 
 // Wiring is completed in later tasks; expose for them.
-export { state, video, stage, startBtn, setStatus, showError, clearError, startCamera, stopCamera, el };
+export { state, video, stage, startBtn, setStatus, showError, clearError, startCamera, stopCamera, el, loadModels };
