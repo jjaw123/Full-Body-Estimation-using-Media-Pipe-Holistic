@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HOLISTIC.TRACK — live full-body tracking</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="bar">
+    <span class="wordmark">HOLISTIC.TRACK</span>
+    <span class="status" id="status" data-state="idle">● IDLE</span>
+  </header>
+
+  <main class="panel">
+    <section class="feed">
+      <div class="stage" id="stage">
+        <video id="feed" playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="grid" aria-hidden="true"></div>
+        <div class="ticks" aria-hidden="true"></div>
+        <div class="err" id="errBox" hidden></div>
+      </div>
+      <div class="controls">
+        <button id="startBtn" class="primary">START CAMERA</button>
+      </div>
+    </section>
+
+    <aside class="rail">
+      <div class="readout"><span class="k">FPS</span><span class="v" id="fps">--</span></div>
+      <div class="readout"><span class="k">POINTS</span><span class="v" id="points">0</span></div>
+      <div class="readout"><span class="k">MODELS</span><span class="v" id="modelStatus">cold</span></div>
+      <div class="switches">
+        <label class="sw"><input type="checkbox" id="tgPose" checked /> <span>POSE</span></label>
+        <label class="sw"><input type="checkbox" id="tgHand" checked /> <span>HANDS</span></label>
+        <label class="sw"><input type="checkbox" id="tgFace" checked /> <span>FACE</span></label>
+        <label class="sw"><input type="checkbox" id="tgMirror" checked /> <span>MIRROR</span></label>
+      </div>
+    </aside>
+  </main>
+
+  <footer class="foot">
+    <span>Runs entirely in your browser — no video ever leaves your device.</span>
+    <a id="repoLink" href="#" target="_blank" rel="noreferrer">GitHub</a>
+  </footer>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

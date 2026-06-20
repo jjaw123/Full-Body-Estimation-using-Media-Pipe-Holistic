@@ -1,0 +1,24 @@
+:root{ --bg:#0a0c10; --panel:#0e1117; --line:#1b2430; --ink:#c9d4e3; --dim:#5d6b7e; --accent:#3fe0c5; --mono:"DejaVu Sans Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:var(--mono)}
+.bar{display:flex;justify-content:space-between;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line)}
+.wordmark{letter-spacing:.18em;font-weight:700}
+.status{font-size:12px;color:var(--dim)}
+.status[data-state="running"]{color:var(--accent)}
+.panel{display:grid;grid-template-columns:1fr 220px;gap:18px;padding:18px;align-items:start}
+.stage{position:relative;aspect-ratio:4/3;background:#05070a;border:1px solid var(--line);overflow:hidden}
+#feed,#overlay{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage.is-mirrored #feed,.stage.is-mirrored #overlay{transform:scaleX(-1)}
+.grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);background-size:40px 40px;opacity:.25;pointer-events:none}
+.err{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px;color:#ff7a7a;background:rgba(5,7,10,.85)}
+.controls{margin-top:12px}
+.primary{font-family:var(--mono);background:var(--accent);color:#04110d;border:0;padding:10px 16px;letter-spacing:.1em;cursor:pointer}
+.primary:disabled{opacity:.5;cursor:wait}
+.rail{display:flex;flex-direction:column;gap:10px;border:1px solid var(--line);padding:14px}
+.readout{display:flex;justify-content:space-between;font-size:13px;border-bottom:1px dashed var(--line);padding-bottom:6px}
+.readout .k{color:var(--dim)}
+.switches{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+.sw{display:flex;align-items:center;gap:8px;font-size:13px}
+.foot{display:flex;justify-content:space-between;color:var(--dim);font-size:12px;padding:12px 18px;border-top:1px solid var(--line)}
+.foot a{color:var(--accent)}
+@media(max-width:760px){.panel{grid-template-columns:1fr}}
