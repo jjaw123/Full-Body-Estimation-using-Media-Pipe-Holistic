@@ -29,26 +29,36 @@ async function loadModels() {
   if (_modelsCache) return _modelsCache;
   const modelStatus = el("modelStatus");
   modelStatus.textContent = "loading…";
-  const vision = await FilesetResolver.forVisionTasks(
-    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
-  );
-  const [pose, hand, face] = await Promise.all([
-    PoseLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URLS.pose, delegate: "GPU" },
-      runningMode: "VIDEO", numPoses: 1,
-    }),
-    HandLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URLS.hand, delegate: "GPU" },
-      runningMode: "VIDEO", numHands: 2,
-    }),
-    FaceLandmarker.createFromOptions(vision, {
-      baseOptions: { modelAssetPath: MODEL_URLS.face, delegate: "GPU" },
-      runningMode: "VIDEO", numFaces: 1,
-    }),
-  ]);
-  _modelsCache = { pose, hand, face };
-  modelStatus.textContent = "ready";
-  return _modelsCache;
+  try {
+    const vision = await FilesetResolver.forVisionTasks(
+      "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm"
+    );
+    const [pose, hand, face] = await Promise.all([
+      PoseLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: MODEL_URLS.pose, delegate: "GPU" },
+        runningMode: "VIDEO", numPoses: 1,
+      }),
+      HandLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: MODEL_URLS.hand, delegate: "GPU" },
+        runningMode: "VIDEO", numHands: 2,
+      }),
+      FaceLandmarker.createFromOptions(vision, {
+        baseOptions: { modelAssetPath: MODEL_URLS.face, delegate: "GPU" },
+        runningMode: "VIDEO", numFaces: 1,
+      }),
+    ]);
+    _modelsCache = { pose, hand, face };
+    modelStatus.textContent = "ready";
+    return _modelsCache;
+  } catch (e) {
+    // Surface model-load failure instead of hanging on "loading…".
+    modelStatus.textContent = "failed";
+    setStatus("idle");
+    showError("Could not load the tracking models. Check your connection and try again.");
+    startBtn.disabled = false;
+    startBtn.textContent = "START CAMERA";
+    throw e;
+  }
 }
 
 function setStatus(name) {
@@ -58,9 +68,15 @@ function setStatus(name) {
 
 function showError(msg) {
   errBox.hidden = false;
-  errBox.textContent = msg;
+  // Write into the styled message slot if present; fall back to the box itself.
+  const slot = errBox.querySelector(".err-msg") || errBox;
+  slot.textContent = msg;
 }
-function clearError() { errBox.hidden = true; errBox.textContent = ""; }
+function clearError() {
+  errBox.hidden = true;
+  const slot = errBox.querySelector(".err-msg");
+  if (slot) slot.textContent = ""; else errBox.textContent = "";
+}
 
 async function startCamera() {
   clearError();
