@@ -102,11 +102,13 @@ async function startCamera() {
 
 function stopCamera() {
   state.running = false;
+  stopRecording();
   if (state.stream) { state.stream.getTracks().forEach((t) => t.stop()); state.stream = null; }
   video.srcObject = null;
   setStatus("idle");
   startBtn.textContent = "START CAMERA";
   startBtn.disabled = false;
+  setCaptureEnabled(false);
 }
 
 const canvas = el("overlay");
@@ -175,6 +177,7 @@ async function startLoop() {
   setStatus("running");
   startBtn.textContent = "STOP CAMERA";
   startBtn.disabled = false;
+  setCaptureEnabled(true);
   requestAnimationFrame(loop);
 }
 
@@ -197,6 +200,82 @@ function loop() {
   }
   requestAnimationFrame(loop);
 }
+
+// --- Capture helpers ---
+const snapBtn = el("snapBtn");
+const recBtn = el("recBtn");
+let _recorder = null;
+let _recChunks = [];
+
+function compositeFrame(targetCtx, w, h) {
+  if (state.mirror) { targetCtx.save(); targetCtx.translate(w, 0); targetCtx.scale(-1, 1); }
+  targetCtx.drawImage(video, 0, 0, w, h);
+  targetCtx.drawImage(canvas, 0, 0, w, h);
+  if (state.mirror) targetCtx.restore();
+}
+
+function takeScreenshot() {
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return;
+  const off = Object.assign(document.createElement("canvas"), { width: w, height: h });
+  compositeFrame(off.getContext("2d"), w, h);
+  const a = document.createElement("a");
+  a.download = `holistic-${Date.now()}.png`;
+  a.href = off.toDataURL("image/png");
+  a.click();
+}
+
+function startRecording() {
+  const w = video.videoWidth, h = video.videoHeight;
+  if (!w || !h) return;
+  const recCanvas = Object.assign(document.createElement("canvas"), { width: w, height: h });
+  const rc = recCanvas.getContext("2d");
+  const mimeType = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"]
+    .find((t) => MediaRecorder.isTypeSupported(t)) ?? "";
+  _recChunks = [];
+  _recorder = new MediaRecorder(recCanvas.captureStream(30), mimeType ? { mimeType } : {});
+  _recorder.ondataavailable = (e) => { if (e.data.size) _recChunks.push(e.data); };
+  _recorder.onstop = () => {
+    const blob = new Blob(_recChunks, { type: _recorder.mimeType || "video/webm" });
+    const a = document.createElement("a");
+    a.download = `holistic-${Date.now()}.webm`;
+    a.href = URL.createObjectURL(blob);
+    a.click();
+    URL.revokeObjectURL(a.href);
+    _recChunks = [];
+  };
+  _recorder.start(200);
+  recBtn.classList.add("is-recording");
+  recBtn.textContent = "";
+  const dot = Object.assign(document.createElement("span"), { className: "rec-dot", "aria-hidden": "true" });
+  recBtn.append(dot, " STOP");
+  (function drawLoop() {
+    if (!_recorder || _recorder.state === "inactive") return;
+    compositeFrame(rc, w, h);
+    requestAnimationFrame(drawLoop);
+  })();
+}
+
+function stopRecording() {
+  if (_recorder && _recorder.state !== "inactive") _recorder.stop();
+  _recorder = null;
+  recBtn.classList.remove("is-recording");
+  recBtn.textContent = "";
+  const resetDot = Object.assign(document.createElement("span"), { className: "rec-dot" });
+  resetDot.setAttribute("aria-hidden", "true");
+  recBtn.append(resetDot, " REC");
+}
+
+function setCaptureEnabled(enabled) {
+  snapBtn.disabled = !enabled;
+  recBtn.disabled = !enabled;
+}
+
+snapBtn.addEventListener("click", takeScreenshot);
+recBtn.addEventListener("click", () => {
+  if (_recorder && _recorder.state !== "inactive") stopRecording();
+  else startRecording();
+});
 
 // --- HUD wiring ---
 el("tgPose").addEventListener("change", (e) => { state.flags.pose = e.target.checked; });
