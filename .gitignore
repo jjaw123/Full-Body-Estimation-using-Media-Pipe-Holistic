@@ -1,0 +1,14 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# MediaPipe model binaries (re-downloaded by body_tracking.py on first run)
+models/
+
+# SDD / planning scratch
+.superpowers/
+
+# OS / editor
+.DS_Store

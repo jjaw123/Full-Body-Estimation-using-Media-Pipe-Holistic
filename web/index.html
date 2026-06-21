@@ -1,49 +1,283 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>HOLISTIC.TRACK — live full-body tracking</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval' https://cdn.jsdelivr.net blob:; worker-src 'self' blob:; connect-src 'self' https://cdn.jsdelivr.net https://storage.googleapis.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; media-src 'self' blob:; base-uri 'self'; form-action 'self'" />
+  <title>HOLISTIC.TRACK — Full-Body Motion, Right Here in Your Browser</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400;12..96,700;12..96,800&family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;1,14..32,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
-  <header class="bar">
-    <span class="wordmark">HOLISTIC.TRACK</span>
-    <span class="status" id="status" data-state="idle">● IDLE</span>
+
+  <!-- STATUS BUS BAR (A's layout, C's colors + type) -->
+  <header class="status-bus" role="banner">
+    <div class="bus-left">
+      <span class="wordmark">HOLISTIC<span class="wordmark-dot">.</span>TRACK</span>
+      <span class="bus-divider" aria-hidden="true"></span>
+      <span class="bus-label">REAL-TIME MOTION CAPTURE</span>
+    </div>
+    <div class="bus-center">
+      <span id="status" data-state="idle" role="status" aria-live="polite">● IDLE</span>
+    </div>
+    <div class="bus-right">
+      <span class="bus-label">v1.0</span>
+      <span class="bus-divider" aria-hidden="true"></span>
+      <span class="bus-label">MEDIAPIPE</span>
+    </div>
   </header>
 
-  <main class="panel">
-    <section class="feed">
-      <div class="stage" id="stage">
+  <!-- TICKER RAIL (A's telemetry ribbon, C's violet accent) -->
+  <div class="ticker-rail" aria-hidden="true">
+    <div class="ticker-track">
+      <span class="ticker-item">POSE_XYZ · 33 LANDMARKS</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">HANDS_L/R · 21 NODES EACH</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">FACE_MESH · 478 KEYPOINTS</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">CONFIDENCE · REALTIME</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">KINEMATICS · GPU ACCELERATED</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">JOINTS · BILATERAL TRACKING</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">POSE_XYZ · 33 LANDMARKS</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">HANDS_L/R · 21 NODES EACH</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">FACE_MESH · 478 KEYPOINTS</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">CONFIDENCE · REALTIME</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">KINEMATICS · GPU ACCELERATED</span>
+      <span class="ticker-sep">◆</span>
+      <span class="ticker-item">JOINTS · BILATERAL TRACKING</span>
+      <span class="ticker-sep">◆</span>
+    </div>
+  </div>
+
+  <!-- HERO (C's editorial hero, placed above the cockpit) -->
+  <section class="hero" aria-label="Product hero">
+    <p class="hero-eyebrow">REAL-TIME · IN-BROWSER · ZERO UPLOADS</p>
+    <h1 class="hero-headline">
+      Your body, mapped <em>live.</em>
+    </h1>
+    <p class="hero-sub">
+      Full-body skeletal tracking — pose, hands, and face — powered entirely by your device. No server. No data leaves this tab.
+    </p>
+  </section>
+
+  <!-- MAIN COCKPIT: FEED PANE + INSTRUMENT RAIL (A's layout) -->
+  <main class="console-layout" aria-label="Tracking cockpit">
+
+    <!-- FEED PANE with viewfinder registration marks -->
+    <section class="feed-pane" aria-label="Camera feed">
+
+      <!-- Error overlay -->
+      <div id="errBox" class="err-overlay" hidden role="alert">
+        <div class="err-inner">
+          <span class="err-icon" aria-hidden="true">⚠</span>
+          <p class="err-msg"></p>
+          <p class="err-sub">Check camera permissions and try again</p>
+        </div>
+      </div>
+
+      <!-- Stage with viewfinder marks -->
+      <div id="stage" class="stage">
+        <!-- Viewfinder registration marks (corner ticks) — A's signature element -->
+        <div class="vf-corner vf-tl" aria-hidden="true"></div>
+        <div class="vf-corner vf-tr" aria-hidden="true"></div>
+        <div class="vf-corner vf-bl" aria-hidden="true"></div>
+        <div class="vf-corner vf-br" aria-hidden="true"></div>
+        <!-- Center crosshair -->
+        <div class="vf-crosshair" aria-hidden="true">
+          <div class="vf-ch-h"></div>
+          <div class="vf-ch-v"></div>
+        </div>
+        <!-- Scan line sweep -->
+        <div class="scan-line" aria-hidden="true"></div>
+
+        <!-- Video + overlay canvas -->
         <video id="feed" playsinline muted></video>
         <canvas id="overlay"></canvas>
-        <div class="grid" aria-hidden="true"></div>
-        <div class="ticks" aria-hidden="true"></div>
-        <div class="err" id="errBox" hidden></div>
+
+        <!-- IDLE poster (A's structure, C's violet skeleton) -->
+        <div class="idle-poster" aria-label="Idle state — camera not started">
+          <div class="poster-skeleton" aria-hidden="true">
+            <svg viewBox="0 0 200 320" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-hidden="true">
+              <!-- Head -->
+              <circle cx="100" cy="36" r="22" stroke="#7C5CFF" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.65"/>
+              <!-- Neck -->
+              <line x1="100" y1="58" x2="100" y2="80" stroke="#7C5CFF" stroke-width="1.5" opacity="0.55"/>
+              <!-- Shoulders -->
+              <line x1="100" y1="80" x2="55" y2="108" stroke="#7C5CFF" stroke-width="1.5" opacity="0.6"/>
+              <line x1="100" y1="80" x2="145" y2="108" stroke="#7C5CFF" stroke-width="1.5" opacity="0.6"/>
+              <!-- Upper arms -->
+              <line x1="55" y1="108" x2="40" y2="158" stroke="#7C5CFF" stroke-width="1.5" opacity="0.55"/>
+              <line x1="145" y1="108" x2="160" y2="158" stroke="#7C5CFF" stroke-width="1.5" opacity="0.55"/>
+              <!-- Forearms -->
+              <line x1="40" y1="158" x2="28" y2="204" stroke="#7C5CFF" stroke-width="1.5" opacity="0.45"/>
+              <line x1="160" y1="158" x2="172" y2="204" stroke="#7C5CFF" stroke-width="1.5" opacity="0.45"/>
+              <!-- Torso -->
+              <line x1="55" y1="108" x2="62" y2="178" stroke="#7C5CFF" stroke-width="1.5" opacity="0.55"/>
+              <line x1="145" y1="108" x2="138" y2="178" stroke="#7C5CFF" stroke-width="1.5" opacity="0.55"/>
+              <line x1="62" y1="178" x2="138" y2="178" stroke="#7C5CFF" stroke-width="1.5" opacity="0.45"/>
+              <!-- Hips to knees -->
+              <line x1="62" y1="178" x2="72" y2="248" stroke="#7C5CFF" stroke-width="1.5" opacity="0.5"/>
+              <line x1="138" y1="178" x2="128" y2="248" stroke="#7C5CFF" stroke-width="1.5" opacity="0.5"/>
+              <!-- Knees to feet -->
+              <line x1="72" y1="248" x2="68" y2="308" stroke="#7C5CFF" stroke-width="1.5" opacity="0.4"/>
+              <line x1="128" y1="248" x2="132" y2="308" stroke="#7C5CFF" stroke-width="1.5" opacity="0.4"/>
+              <!-- Joint dots (using engine landmark colors for reference feel) -->
+              <circle cx="100" cy="80" r="3.5" fill="#7C5CFF" opacity="0.85"/>
+              <circle cx="55" cy="108" r="3" fill="#A78BFF" opacity="0.8"/>
+              <circle cx="145" cy="108" r="3" fill="#A78BFF" opacity="0.8"/>
+              <circle cx="40" cy="158" r="3" fill="#7C5CFF" opacity="0.75"/>
+              <circle cx="160" cy="158" r="3" fill="#7C5CFF" opacity="0.75"/>
+              <circle cx="28" cy="204" r="3" fill="#A78BFF" opacity="0.65"/>
+              <circle cx="172" cy="204" r="3" fill="#A78BFF" opacity="0.65"/>
+              <circle cx="62" cy="178" r="3.5" fill="#7C5CFF" opacity="0.75"/>
+              <circle cx="138" cy="178" r="3.5" fill="#7C5CFF" opacity="0.75"/>
+              <circle cx="72" cy="248" r="3" fill="#A78BFF" opacity="0.7"/>
+              <circle cx="128" cy="248" r="3" fill="#A78BFF" opacity="0.7"/>
+              <circle cx="68" cy="308" r="2.5" fill="#7C5CFF" opacity="0.5"/>
+              <circle cx="132" cy="308" r="2.5" fill="#7C5CFF" opacity="0.5"/>
+              <!-- Face landmarks -->
+              <circle cx="92" cy="33" r="1.5" fill="#A78BFF" opacity="0.5"/>
+              <circle cx="108" cy="33" r="1.5" fill="#A78BFF" opacity="0.5"/>
+              <circle cx="100" cy="42" r="1.5" fill="#A78BFF" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="poster-text">
+            <p class="poster-system">SYS · AWAITING INPUT</p>
+            <h2 class="poster-cta">INITIALIZE TRACKING</h2>
+            <p class="poster-hint">Grant camera access to begin full-body landmark detection</p>
+          </div>
+        </div>
       </div>
-      <div class="controls">
-        <button id="startBtn" class="primary">START CAMERA</button>
-      </div>
+
+      <!-- Stage label overlays -->
+      <div class="stage-label stage-label-tl" aria-hidden="true">CAM_01</div>
+      <div class="stage-label stage-label-tr" aria-hidden="true">LIVE · 0000</div>
     </section>
 
-    <aside class="rail">
-      <div class="readout"><span class="k">FPS</span><span class="v" id="fps">--</span></div>
-      <div class="readout"><span class="k">POINTS</span><span class="v" id="points">0</span></div>
-      <div class="readout"><span class="k">MODELS</span><span class="v" id="modelStatus">cold</span></div>
-      <div class="switches">
-        <label class="sw"><input type="checkbox" id="tgPose" checked /> <span>POSE</span></label>
-        <label class="sw"><input type="checkbox" id="tgHand" checked /> <span>HANDS</span></label>
-        <label class="sw"><input type="checkbox" id="tgFace" checked /> <span>FACE</span></label>
-        <label class="sw"><input type="checkbox" id="tgMirror" checked /> <span>MIRROR</span></label>
+    <!-- INSTRUMENT RAIL (A's cockpit structure, C's violet/Inter skin) -->
+    <aside class="instrument-rail" aria-label="Controls and telemetry">
+
+      <!-- CONTROL PANEL -->
+      <div class="rail-section">
+        <div class="rail-section-header">
+          <span class="rail-label">INPUT CONTROL</span>
+          <span class="rail-badge" aria-hidden="true">CTRL</span>
+        </div>
+        <button id="startBtn" class="start-btn" type="button">START CAMERA</button>
       </div>
+
+      <!-- GAUGES -->
+      <div class="rail-section">
+        <div class="rail-section-header">
+          <span class="rail-label">TELEMETRY</span>
+          <span class="rail-badge" aria-hidden="true">LIVE</span>
+        </div>
+
+        <div class="gauge-group">
+          <div class="gauge">
+            <div class="gauge-label">FPS</div>
+            <div class="gauge-value" id="fps" aria-label="Frames per second">--</div>
+            <div class="gauge-bar" aria-hidden="true">
+              <div class="gauge-fill fps-fill"></div>
+            </div>
+          </div>
+
+          <div class="gauge">
+            <div class="gauge-label">POINTS</div>
+            <div class="gauge-value" id="points" aria-label="Tracked landmark points">--</div>
+            <div class="gauge-bar" aria-hidden="true">
+              <div class="gauge-fill pts-fill"></div>
+            </div>
+          </div>
+
+          <div class="gauge gauge-model">
+            <div class="gauge-label">MODEL</div>
+            <div class="gauge-value model-val" id="modelStatus" aria-label="Model status">cold</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- LAYER SWITCHES -->
+      <div class="rail-section">
+        <div class="rail-section-header">
+          <span class="rail-label">LAYER MATRIX</span>
+          <span class="rail-badge" aria-hidden="true">EN</span>
+        </div>
+
+        <div class="switch-group">
+          <label class="instrument-switch" for="tgPose">
+            <input type="checkbox" id="tgPose" checked />
+            <span class="sw-track" aria-hidden="true">
+              <span class="sw-thumb"></span>
+            </span>
+            <span class="sw-meta">
+              <span class="sw-name">POSE</span>
+              <span class="sw-desc">33 body landmarks</span>
+            </span>
+          </label>
+
+          <label class="instrument-switch" for="tgHand">
+            <input type="checkbox" id="tgHand" checked />
+            <span class="sw-track" aria-hidden="true">
+              <span class="sw-thumb"></span>
+            </span>
+            <span class="sw-meta">
+              <span class="sw-name">HANDS</span>
+              <span class="sw-desc">21 nodes × 2</span>
+            </span>
+          </label>
+
+          <label class="instrument-switch" for="tgFace">
+            <input type="checkbox" id="tgFace" checked />
+            <span class="sw-track" aria-hidden="true">
+              <span class="sw-thumb"></span>
+            </span>
+            <span class="sw-meta">
+              <span class="sw-name">FACE</span>
+              <span class="sw-desc">478 keypoints</span>
+            </span>
+          </label>
+
+          <label class="instrument-switch" for="tgMirror">
+            <input type="checkbox" id="tgMirror" checked />
+            <span class="sw-track" aria-hidden="true">
+              <span class="sw-thumb"></span>
+            </span>
+            <span class="sw-meta">
+              <span class="sw-name">MIRROR</span>
+              <span class="sw-desc">Flip feed axis</span>
+            </span>
+          </label>
+        </div>
+      </div>
+
+      <!-- REPO LINK -->
+      <div class="rail-section rail-section-footer">
+        <a id="repoLink" href="#" class="repo-link" aria-label="View source repository">
+          <span class="repo-icon" aria-hidden="true">&#171;</span>
+          SOURCE
+          <span class="repo-icon" aria-hidden="true">&#187;</span>
+        </a>
+      </div>
+
     </aside>
   </main>
 
-  <footer class="foot">
-    <span>Runs entirely in your browser — no video ever leaves your device.</span>
-    <a id="repoLink" href="#" target="_blank" rel="noreferrer">GitHub</a>
+  <!-- FOOTER -->
+  <footer class="console-footer" role="contentinfo">
+    <p class="privacy-line">Runs entirely in your browser — no video ever leaves your device.</p>
   </footer>
 
-  <script type="module" src="app.js"></script>
+  <script type="module" src="/app.js"></script>
 </body>
 </html>
